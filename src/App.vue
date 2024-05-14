@@ -1,9 +1,10 @@
 <script setup>
-  import { ref, reactive } from 'vue'
+  import { ref, reactive, watch, computed, onMounted } from 'vue'
   import Presupuesto from './components/Presupuesto.vue'
   import ControlPresupuesto from './components/ControlPresupuesto.vue'
   import iconoNuevoGasto from './assets/img/nuevo-gasto.svg'
   import Modal from './components/Modal.vue'
+  import Filter from './components/Filter.vue'
   import Gasto from './components/Gasto.vue'
   import { generateId } from './helpers'
 
@@ -14,6 +15,8 @@
 
   const presupuesto = ref(0);
   const disponible = ref(0);
+  const gastado = ref(0);
+  const filter = ref('')
 
   const gasto = reactive({
     nombre: '',
@@ -24,6 +27,41 @@
   })
 
   const gastos = ref([])
+
+  watch(gastos, () => {
+    const totalGastado = gastos.value.reduce((total, gasto) => gasto.cantidad + total, 0)
+    gastado.value = totalGastado
+    disponible.value = presupuesto.value - totalGastado
+    localStorage.setItem('gastos', JSON.stringify(gastos.value))
+  }, {
+    deep: true
+  })
+
+  watch(modal, () => {
+    if (!modal.mostrar) {
+      resetStateGasto()
+    }
+  }, {
+    deep: true
+  })
+
+  watch(presupuesto, () => {
+   localStorage.setItem('presupuesto', presupuesto.value) 
+  })
+
+  onMounted(() => {
+    const presupuestoStorage = localStorage.getItem('presupuesto')
+    const gastosStorage = localStorage.getItem('gastos')
+
+    if(presupuestoStorage) {
+      presupuesto.value = Number(presupuestoStorage)
+      disponible.value = Number(presupuestoStorage)
+    }
+
+    if(gastosStorage) {
+      gastos.value = JSON.parse(gastosStorage)
+    }
+  })
 
   const definirPresupuesto = (cantidad) => {
     presupuesto.value = cantidad
@@ -45,20 +83,57 @@
   }
 
   const saveGasto = () => {
-    gastos.value.push({
-      ...gasto,
-      id: generateId(),
-    })
+    if(gasto.id) {
+      const { id } = gasto
+      const i = gastos.value.findIndex(gasto => gasto.id === id)
+      gastos.value[i] = {...gasto}
+    } else {
+      gastos.value.push({
+        ...gasto,
+        id: generateId(),
+      })
+    }
 
     closeModal()
+    resetStateGasto()
+  }
 
+  const resetStateGasto = () => {
     Object.assign(gasto, {
-      nombre: '',
-      cantidad: '',
-      categoria: '',
-      id: null,
-      fecha: Date.now()
-    })
+        nombre: '',
+        cantidad: '',
+        categoria: '',
+        id: null,
+        fecha: Date.now()
+      })
+  }
+
+  const selectGasto = id => {
+    const gastoEdit = gastos.value.filter(gasto => gasto.id === id)[0]
+    Object.assign(gasto, gastoEdit)
+    showModal()
+  }
+
+  const deleteGasto = () => {
+    gastos.value = gastos.value.filter(gastoState => gastoState.id !== gasto.id)
+    closeModal()
+  }
+
+  const gastosFilters = computed(() => {
+    
+    if(filter.value) {
+      return gastos.value.filter(gasto => gasto.categoria === filter.value)
+    }
+
+    return gastos.value
+
+  })
+
+  const resetApp = () => {
+    if (confirm('¿Deseas reiniciar el presuouesto de gastos?')) {
+      gastos.value = []
+      presupuesto.value = 0
+    }
   }
 </script>
 
@@ -77,17 +152,23 @@
             v-else
             :presupuesto="presupuesto"
             :disponible="disponible"
+            :gastado="gastado"
+            @reset-app="resetApp"
         />
       </div>
     </header>
 
     <main v-if="presupuesto > 0">
-      
+      <Filter 
+        v-model:filter="filter"
+      />
       <div class="container list-gasto">
         <h2>{{ gastos.length > 0 ? 'Gastos' : 'No hay gastos' }}</h2>
         <Gasto 
-          v-for="gasto in gastos"
+          v-for="gasto in gastosFilters"
+          :key="gasto.id"
           :gasto="gasto"
+          @select-gasto="selectGasto"
         />
       
       </div>
@@ -104,7 +185,9 @@
           v-if="modal.mostrar"
           @close-modal="closeModal"
           @save-gasto="saveGasto"
+          @delete-gasto="deleteGasto"
           :modal="modal"
+          :id="gasto.id"
           v-model:nombre="gasto.nombre"
           v-model:cantidad="gasto.cantidad"
           v-model:categoria="gasto.categoria"

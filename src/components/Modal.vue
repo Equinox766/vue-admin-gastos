@@ -1,10 +1,10 @@
 <script setup>
-    import { ref } from 'vue'
+    import { ref, computed } from 'vue'
     import Alert from './Alert.vue'
     import closeModal from '../assets/img/cerrar.svg'
 
     const error = ref('')
-    const emit = defineEmits(['close-modal', 'save-gasto', 'update:nombre', 'update:cantidad', 'update:categoria'])
+    const emit = defineEmits(['close-modal', 'save-gasto', 'delete-gasto', 'update:nombre', 'update:cantidad', 'update:categoria'])
     const props = defineProps({
         modal: {
             type: Object,
@@ -21,12 +21,22 @@
         categoria: {
             type: String,
             required: true
+        },
+        disponible: {
+            type: Number,
+            required: true
+        },
+        id: {
+            type: [String, null],
+            required: true
         }
 
     })
 
+    const old = props.cantidad
+
     const addGasto = () => {
-        const { cantidad, categoria, nombre } = props
+        const { cantidad, categoria, nombre, disponible, id } = props
         if([cantidad, categoria, nombre].includes('')) {
             error.value = 'Todos los campos son obligatorios.'
             setTimeout(() => {
@@ -43,8 +53,30 @@
             return
         }
 
+        if(id) {
+            if (cantidad > old + disponible) {
+                error.value = 'La cantidad no puede ser mayor al disponible.'
+                setTimeout(() => {
+                    error.value = ''
+                }, 3000)
+                return
+            }
+        } else {
+            if (cantidad > disponible) {
+                error.value = 'La cantidad no puede ser mayor al disponible.'
+                setTimeout(() => {
+                    error.value = ''
+                }, 3000)
+                return
+            }
+        }
+
         emit('save-gasto')
     }
+
+    const isEditing = computed(() => {
+        return props.id
+    })
 
 </script>
 
@@ -64,7 +96,7 @@
                 class="new-gasto"
                 @submit.prevent="addGasto"
             >
-                <legend>Añador Gasto</legend>
+                <legend>{{ isEditing ? 'Guardar Camibios' : 'Añador Gasto' }}</legend>
 
                 <Alert v-if="error">{{ error }}</Alert>
 
@@ -107,9 +139,17 @@
                 </div>
                 <input 
                     type="submit" 
-                    value="Añadir Gasto"
+                    :value="[isEditing ? 'Guardar Cambios' : 'Añador Gasto']"
                 >
             </form>
+            <button
+                v-if="isEditing"
+                type="button"
+                class="btn-delete"
+                @click="$emit('delete-gasto', id)"
+            >
+            Eliminar Gasto
+            </button>
         </div>
     </div>
 </template>
@@ -185,6 +225,18 @@
         background-color: var(--blue);
         color: var(--white);
         font-weight: 700;
+        cursor: pointer;
+    }
+
+    .btn-delete {
+        border: none;
+        padding: 1rem;
+        width: 100%;
+        background-color: #ef4444;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: var(--white);
+        margin-top: 10rem;
         cursor: pointer;
     }
 </style>

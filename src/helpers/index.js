@@ -1,8 +1,8 @@
 export const formatearCantidad = cantidad => {
-    return Number(cantidad).toLocaleString('es-US', {
-        style: 'currency',
-        currency: 'USD'
-    })
+    const simboloMoneda = 'Gs.';
+    const cantidadSinDecimales = Math.floor(cantidad);
+    const cantidadFormateada = cantidadSinDecimales.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return simboloMoneda + ' ' + cantidadFormateada;
 }
 
 export const generateId = () => {

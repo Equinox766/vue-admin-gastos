@@ -1,6 +1,11 @@
 <script setup>
-  import imagen from '../assets/img/grafico.jpg';
-  import { formatearCantidad } from '../helpers';
+  import { computed  } from 'vue';
+  import CircleProgress from 'vue3-circle-progress'
+  import "vue3-circle-progress/dist/circle-progress.css"
+  import { formatearCantidad } from '../helpers'
+  
+  defineEmits(['reset-app'])
+
   const props = defineProps({
     presupuesto: {
       type: Number,
@@ -9,20 +14,39 @@
     disponible: {
       type: Number,
       required: true
+    },
+    gastado: {
+      type: Number,
+      required: true
     }
   })
+
+  const percentaje = computed(() => {
+    return parseInt(((props.presupuesto - props.disponible) / props.presupuesto) * 100)
+  })
+
 </script>
 
 <template>
   <div class="two-columns">
     <div class="container-grafig">
-      <img 
-          :src="imagen"
+      <div class="percentaje">
+        {{ percentaje }} %
+      </div>
+      <CircleProgress
+        :percent="percentaje"
+        :size="250"
+        :border-width="30"
+        :border-bg-width="30"
+        fill-color="#3b82f6"
+        empty-color="#e1e1e1"
       />
     </div>
     <div class="container-presupuesto">
       <button
         class="reset-app"
+        type="button"
+        @click="$emit('reset-app')"
       >
         Resetear App
       </button>
@@ -36,7 +60,7 @@
       </p>
       <p>
         <span>Gastado: </span>
-        Gs. 0
+        {{ formatearCantidad(gastado) }}
       </p>
     </div>
   </div>
@@ -61,6 +85,23 @@
     .two-columns > :first-child {
       margin-bottom: 0;
     }
+
+    .container-grafig {
+      position: relative;
+    }
+
+    .percentaje {
+      position: absolute;
+      margin: auto;
+      top: calc(50% - 1.5rem);
+      right: 0;
+      left: 0;
+      text-align: center;
+      z-index: 100;
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--gray-hot);
+    } 
 
     .reset-app {
       background-color: #DB2777;
