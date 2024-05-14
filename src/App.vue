@@ -1,29 +1,115 @@
 <script setup>
-  import { ref } from 'vue';
-  import Presupuesto from './components/Presupuesto.vue';
-  import ControlPresupuesto from './components/ControlPresupuesto.vue';
+  import { ref, reactive } from 'vue'
+  import Presupuesto from './components/Presupuesto.vue'
+  import ControlPresupuesto from './components/ControlPresupuesto.vue'
+  import iconoNuevoGasto from './assets/img/nuevo-gasto.svg'
+  import Modal from './components/Modal.vue'
+  import Gasto from './components/Gasto.vue'
+  import { generateId } from './helpers'
+
+  const modal = reactive({
+    mostrar: false,
+    animar: false
+  })
 
   const presupuesto = ref(0);
+  const disponible = ref(0);
+
+  const gasto = reactive({
+    nombre: '',
+    cantidad: '',
+    categoria: '',
+    id: null,
+    fecha: Date.now()
+  })
+
+  const gastos = ref([])
 
   const definirPresupuesto = (cantidad) => {
     presupuesto.value = cantidad
+    disponible.value = cantidad
+  }
+
+  const showModal = () => {
+    modal.mostrar = true
+    setTimeout(() => {
+      modal.animar = true
+    }, 300)
+  }
+
+  const closeModal = () => {
+    modal.animar = false
+    setTimeout(() => {
+      modal.mostrar = false
+    }, 300)
+  }
+
+  const saveGasto = () => {
+    gastos.value.push({
+      ...gasto,
+      id: generateId(),
+    })
+
+    closeModal()
+
+    Object.assign(gasto, {
+      nombre: '',
+      cantidad: '',
+      categoria: '',
+      id: null,
+      fecha: Date.now()
+    })
   }
 </script>
 
 <template>
-  <div>
+  <div 
+    :class="{fijar: modal.mostrar}"
+  >
     <header>
       <h1>Planificador de Gastos</h1>
       <div class="container-header container shadow">
         <Presupuesto
-            v-if="presupuesto.value === 0"
+            v-if="presupuesto === 0"
             @definir-presupuesto="definirPresupuesto"
         />
         <ControlPresupuesto
             v-else
+            :presupuesto="presupuesto"
+            :disponible="disponible"
         />
       </div>
     </header>
+
+    <main v-if="presupuesto > 0">
+      
+      <div class="container list-gasto">
+        <h2>{{ gastos.length > 0 ? 'Gastos' : 'No hay gastos' }}</h2>
+        <Gasto 
+          v-for="gasto in gastos"
+          :gasto="gasto"
+        />
+      
+      </div>
+
+      <div class="crear-gasto">
+        <img
+          :src="iconoNuevoGasto"
+          alt="icono nuevo gasto"
+          @click="showModal"
+        />
+      </div>
+
+      <Modal
+          v-if="modal.mostrar"
+          @close-modal="closeModal"
+          @save-gasto="saveGasto"
+          :modal="modal"
+          v-model:nombre="gasto.nombre"
+          v-model:cantidad="gasto.cantidad"
+          v-model:categoria="gasto.categoria"
+      />
+    </main>
   </div>
 </template>
 
@@ -90,5 +176,30 @@
     background-color: var(--white);
     border-radius: 1.2rem;
     padding: 5rem;
+  }
+
+  .crear-gasto {
+    position: fixed;
+    bottom: 5rem;
+    right: 5rem;
+  }
+
+  .crear-gasto img {
+    width: 5rem;
+    cursor: pointer;
+  }
+
+  .list-gasto {
+    margin-top: 10rem;
+  }
+  
+  .list-gasto h2{
+    font-weight: 900;
+    color: var(--gray-hot);
+  }
+
+  .fijar {
+    overflow: hidden;
+    height: 100vh;
   }
 </style>
