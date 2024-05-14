@@ -62,6 +62,7 @@
                 return
             }
         } else {
+            console.log(cantidad, disponible);
             if (cantidad > disponible) {
                 error.value = 'La cantidad no puede ser mayor al disponible.'
                 setTimeout(() => {

@@ -188,6 +188,7 @@
           @delete-gasto="deleteGasto"
           :modal="modal"
           :id="gasto.id"
+          :disponible="disponible"
           v-model:nombre="gasto.nombre"
           v-model:cantidad="gasto.cantidad"
           v-model:categoria="gasto.categoria"
